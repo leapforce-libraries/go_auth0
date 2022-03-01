@@ -1,6 +1,7 @@
 package auth0
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -19,8 +20,8 @@ type User struct {
 	Picture       string                  `json:"picture"`
 	UpdatedAt     o_types.DateTimeString  `json:"updated_at"`
 	UserId        string                  `json:"user_id"`
-	UserMetadata  map[string]interface{}  `json:"user_metadata"`
-	AppMetadata   map[string]interface{}  `json:"app_metadata"`
+	UserMetadata  json.RawMessage         `json:"user_metadata"`
+	AppMetadata   json.RawMessage         `json:"app_metadata"`
 	LastIp        string                  `json:"last_ip"`
 	LastLogin     *o_types.DateTimeString `json:"last_login"`
 	LoginsCount   int64                   `json:"logins_count"`
