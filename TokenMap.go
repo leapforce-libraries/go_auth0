@@ -45,8 +45,6 @@ func (m *TokenMap) Token() *token.Token {
 }
 
 func (m *TokenMap) NewToken() (*token.Token, *errortools.Error) {
-
-	fmt.Println("NewToken")
 	t := token.Token{}
 
 	body := struct {
@@ -72,13 +70,10 @@ func (m *TokenMap) NewToken() (*token.Token, *errortools.Error) {
 		return nil, e
 	}
 
-	fmt.Println(t)
-
 	return &t, nil
 }
 
 func (m *TokenMap) SetToken(token *token.Token, save bool) *errortools.Error {
-	fmt.Println("SetToken")
 	if token.AccessToken == nil {
 		return errortools.ErrorMessage("AccessToken of new token is nil")
 	}
@@ -93,7 +88,6 @@ func (m *TokenMap) SetToken(token *token.Token, save bool) *errortools.Error {
 }
 
 func (m *TokenMap) RetrieveToken() *errortools.Error {
-	fmt.Println("RetrieveToken")
 	accessToken, _ := m.map_.Get("access_token")
 	tokenType, _ := m.map_.Get("token_type")
 	scope, _ := m.map_.Get("scope")
@@ -110,7 +104,6 @@ func (m *TokenMap) RetrieveToken() *errortools.Error {
 }
 
 func (m *TokenMap) SaveToken() *errortools.Error {
-	fmt.Println("SaveToken")
 	if m.token == nil {
 		return errortools.ErrorMessage("Token is nil pointer")
 	}
