@@ -3,10 +3,11 @@ package auth0
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	errortools "github.com/leapforce-libraries/go_errortools"
 	go_http "github.com/leapforce-libraries/go_http"
+	go_oauth2 "github.com/leapforce-libraries/go_oauth2"
+	tokensource "github.com/leapforce-libraries/go_oauth2/tokensource"
 	utilities "github.com/leapforce-libraries/go_utilities"
 )
 
@@ -17,14 +18,15 @@ const (
 // type
 //
 type Service struct {
-	apiUrl      string
-	apiKey      string
-	httpService *go_http.Service
+	tenantName    string
+	clientId      string
+	oAuth2Service *go_oauth2.Service
 }
 
 type ServiceConfig struct {
-	ApiUrl string
-	ApiKey string
+	TenantName  string
+	ClientId    string
+	TokenSource tokensource.TokenSource
 }
 
 func NewService(serviceConfig *ServiceConfig) (*Service, *errortools.Error) {
@@ -32,39 +34,40 @@ func NewService(serviceConfig *ServiceConfig) (*Service, *errortools.Error) {
 		return nil, errortools.ErrorMessage("ServiceConfig must not be a nil pointer")
 	}
 
-	if serviceConfig.ApiUrl == "" {
-		return nil, errortools.ErrorMessage("Service ApiKey not provided")
+	if serviceConfig.TenantName == "" {
+		return nil, errortools.ErrorMessage("Service TenantName not provided")
 	}
 
-	if serviceConfig.ApiKey == "" {
-		return nil, errortools.ErrorMessage("Service ApiKey not provided")
+	if serviceConfig.ClientId == "" {
+		return nil, errortools.ErrorMessage("Service ClientId not provided")
 	}
 
-	httpService, e := go_http.NewService(&go_http.ServiceConfig{})
+	config := go_oauth2.ServiceConfig{
+		ClientId:    serviceConfig.ClientId,
+		TokenSource: serviceConfig.TokenSource,
+	}
+
+	oAuth2Service, e := go_oauth2.NewService(&config)
 	if e != nil {
 		return nil, e
 	}
 
 	return &Service{
-		apiUrl:      strings.Trim(serviceConfig.ApiUrl, "/"),
-		apiKey:      serviceConfig.ApiKey,
-		httpService: httpService,
+		tenantName:    serviceConfig.TenantName,
+		clientId:      serviceConfig.ClientId,
+		oAuth2Service: oAuth2Service,
 	}, nil
 }
 
 func (service *Service) httpRequest(requestConfig *go_http.RequestConfig) (*http.Request, *http.Response, *errortools.Error) {
 	// add authentication header
-	header := http.Header{}
-	header.Set("Authorization", fmt.Sprintf("Bearer %s", service.apiKey))
-	(*requestConfig).NonDefaultHeaders = &header
-
 	errorResponse := ErrorResponse{}
 	if utilities.IsNil(requestConfig.ErrorModel) {
 		// add error model
 		(*requestConfig).ErrorModel = &errorResponse
 	}
 
-	request, response, e := service.httpService.HttpRequest(requestConfig)
+	request, response, e := service.oAuth2Service.HttpRequest(requestConfig)
 	if e != nil {
 		if errorResponse.Message != "" {
 			e.SetMessage(errorResponse.Message)
@@ -75,7 +78,7 @@ func (service *Service) httpRequest(requestConfig *go_http.RequestConfig) (*http
 }
 
 func (service *Service) url(path string) string {
-	return fmt.Sprintf("%s/%s", service.apiUrl, path)
+	return fmt.Sprintf("https://%s.us.auth0.com/api/v2/%s", service.tenantName, path)
 }
 
 func (service *Service) ApiName() string {
@@ -83,13 +86,13 @@ func (service *Service) ApiName() string {
 }
 
 func (service *Service) ApiKey() string {
-	return service.apiKey
+	return service.clientId
 }
 
 func (service *Service) ApiCallCount() int64 {
-	return service.httpService.RequestCount()
+	return service.oAuth2Service.ApiCallCount()
 }
 
 func (service *Service) ApiReset() {
-	service.httpService.ResetRequestCount()
+	service.oAuth2Service.ApiReset()
 }
